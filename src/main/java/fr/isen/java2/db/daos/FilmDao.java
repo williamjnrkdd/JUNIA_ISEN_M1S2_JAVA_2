@@ -15,7 +15,7 @@ public class FilmDao {
 
 	public List<Film> listFilms() {
 		List<Film> films = new ArrayList<Film>();
-		try(Connection connection = DataSourceFactory.getDataSource().getConnection()){
+		try(Connection connection = DataSourceFactory.getConnection()){
 			try(Statement statement = connection.createStatement()){
 				try(ResultSet result = statement.executeQuery("SELECT * FROM film JOIN genre ON film.genre_id = genre.idgenre")){
 					while(result.next()) {
@@ -43,7 +43,7 @@ public class FilmDao {
 
 	public List<Film> listFilmsByGenre(String genreName) {
 		List<Film> films = new ArrayList<Film>();
-		try(Connection connection = DataSourceFactory.getDataSource().getConnection()){
+		try(Connection connection = DataSourceFactory.getConnection()){
 			try(PreparedStatement statement = connection.prepareStatement("SELECT * FROM film JOIN genre ON film.genre_id = genre.idgenre WHERE genre.name = ?")){
 				statement.setString(1, genreName);
 				try(ResultSet result = statement.executeQuery()){
@@ -62,17 +62,15 @@ public class FilmDao {
 		}
 		catch(SQLException e) {
 			e.printStackTrace();
-			return null;
 		}
 		catch(Exception e) {
 			e.printStackTrace();
-			return null;
 		}
 		return films;
 	}
 
 	public Film addFilm(Film film) {
-		try(Connection connection = DataSourceFactory.getDataSource().getConnection()){
+		try(Connection connection = DataSourceFactory.getConnection()){
 			try(PreparedStatement statement = connection.prepareStatement("INSERT INTO film(title,release_date,genre_id,duration,director,summary) VALUES(?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)){
 				statement.setString(1, film.getTitle());
 				statement.setDate(2, java.sql.Date.valueOf(film.getReleaseDate()));
@@ -81,16 +79,17 @@ public class FilmDao {
 				statement.setString(5, film.getDirector());
 				statement.setString(6, film.getSummary());
 				statement.executeUpdate();
-				ResultSet result = statement.getGeneratedKeys();
-				if(result.next()) {
-					return new Film(result.getInt(1),
-								film.getTitle(),
-								film.getReleaseDate(),
-								film.getGenre(),
-								film.getDuration(),
-								film.getDirector(),
-								film.getSummary()
-								);
+				try(ResultSet result = statement.getGeneratedKeys()){
+					if(result.next()) {
+						return new Film(result.getInt(1),
+									film.getTitle(),
+									film.getReleaseDate(),
+									film.getGenre(),
+									film.getDuration(),
+									film.getDirector(),
+									film.getSummary()
+									);
+					}
 				}
 			}
 		}
